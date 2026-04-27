@@ -1,0 +1,49 @@
+{
+  "name": "bytebell-public",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "typecheck": "tsc -b",
+    "typecheck:clean": "tsc -b --clean",
+    "typecheck:watch": "tsc -b --watch",
+    "format": "prettier --write \"**/*.{ts,tsx,js,mjs,cjs,json,md}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,mjs,cjs,json,md}\"",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "lint:staged": "lint-staged",
+    "commit:validate": "bun run scripts/commit-validate.ts",
+    "push:validate": "bun run scripts/push-validate.ts",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "**/*.{ts,tsx,js,mjs,cjs}": [
+      "prettier --write",
+      "eslint --fix --max-warnings=0"
+    ],
+    "**/*.{json,md}": [
+      "prettier --write"
+    ]
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^20.5.2",
+    "@commitlint/config-conventional": "^20.5.0",
+    "@eslint/js": "^10.0.1",
+    "@types/bun": "latest",
+    "eslint": "^10.2.1",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.5",
+    "globals": "^17.5.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.4.0",
+    "prettier": "^3.8.3",
+    "typescript": "^5.6.0",
+    "typescript-eslint": "^8.59.0"
+  },
+  "engines": {
+    "bun": ">=1.1.0"
+  }
+}

@@ -1,0 +1,3 @@
+* text=auto eol=lf
+*.lock binary
+bun.lock binary

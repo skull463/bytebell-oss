@@ -1,0 +1,14 @@
+title = "Ingestion Engine Public gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Project allowlist"
+paths = [
+  '''(.*?)\.example$''',
+  '''docs/.*''',
+  '''(^|.*/)CLAUDE\.md$''',
+  '''(^|.*/)README\.md$''',
+  '''(^|.*/)context\.md$''',
+]
