@@ -33,17 +33,33 @@ The package does **not** own:
 function connectRedis(): Promise<void>;
 function closeRedis(): Promise<void>;
 function pingRedis(): Promise<PingResult>;
+function getRedisConnection(): RedisConnectionOptions;
 
 interface PingResult {
   ok: boolean;
   latencyMs: number;
 }
+interface RedisConnectionOptions {
+  host: string;
+  port: number;
+  password?: string;
+  username?: string;
+  db: number;
+  tls?: object;
+  maxRetriesPerRequest: null;
+  enableReadyCheck: false;
+}
 ```
 
-`_getRedis()` is **internal** — consumed only by future helpers inside
-this package or by `@bb/queue` once it lands and graduates a
-`getRedisConnection()` accessor to the public surface. Higher tiers cannot
-reach a raw `Redis` handle today.
+`getRedisConnection()` returns a BullMQ-compatible options blob (parsed
+from `Config.RedisUrl`) for `@bb/queue` to construct its own `Queue` and
+`Worker` instances — BullMQ instantiates separate internal redis clients
+per Queue/Worker rather than reusing a single shared client. The shared
+client owned by this package remains for `pingRedis()` and any future
+non-queue redis use.
+
+`_getRedis()` is **internal** — consumed only by helpers inside this
+package. Higher tiers cannot reach a raw `Redis` handle today.
 
 ## Data ownership
 
@@ -86,8 +102,6 @@ No logger, no telemetry, no Mongo, no Neo4j. This package boots after
 ## What is intentionally out of scope (v0)
 
 - BullMQ Queue/Worker/QueueEvents construction (`@bb/queue`)
-- A `getRedisConnection()` export returning the BullMQ `ConnectionOptions`
-  blob — added when `@bb/queue` is the first caller, not before
 - Caching helpers / typed key-value wrappers
 - Distributed locks
 - Dedicated subscriber / publisher clients (BullMQ creates its own
@@ -96,15 +110,6 @@ No logger, no telemetry, no Mongo, no Neo4j. This package boots after
   apply; revisit if the queue shows flakiness)
 
 ## How to extend
-
-Adding `getRedisConnection()` (the BullMQ-friendly options blob) when
-`@bb/queue` lands:
-
-1. Read `getConfigValue(Config.RedisUrl)` and return
-   `{ url, maxRetriesPerRequest: null, enableReadyCheck: false }` (the
-   exact options the shared client uses).
-2. Re-export from `src/index.ts`.
-3. Update the _Public exports_ and _Out of scope_ sections of this file.
 
 Adding a typed cache helper (`cacheGet` / `cacheSet`) when a non-queue
 consumer arrives:

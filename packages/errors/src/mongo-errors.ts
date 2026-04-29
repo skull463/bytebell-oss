@@ -25,6 +25,16 @@ export class MongoNotConnectedError extends Error {
   }
 }
 
+export class KnowledgeNotFoundError extends Error {
+  override readonly name = "KnowledgeNotFoundError";
+  readonly knowledgeId: string;
+
+  constructor(knowledgeId: string) {
+    super(`No knowledge document found with knowledgeId="${knowledgeId}".`);
+    this.knowledgeId = knowledgeId;
+  }
+}
+
 function describe(cause: unknown): string {
   return cause instanceof Error ? cause.message : String(cause);
 }

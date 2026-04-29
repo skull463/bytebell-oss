@@ -8,6 +8,17 @@ export interface PingResult {
   latencyMs: number;
 }
 
+export interface RedisConnectionOptions {
+  host: string;
+  port: number;
+  password: string | undefined;
+  username: string | undefined;
+  db: number;
+  tls: object | undefined;
+  maxRetriesPerRequest: null;
+  enableReadyCheck: false;
+}
+
 let client: Redis | null = null;
 let connecting: Promise<void> | null = null;
 
@@ -61,6 +72,26 @@ export async function pingRedis(): Promise<PingResult> {
   } catch {
     return { ok: false, latencyMs: Math.round(performance.now() - start) };
   }
+}
+
+export function getRedisConnection(): RedisConnectionOptions {
+  const url = getConfigValue(Config.RedisUrl);
+  if (url.length === 0) {
+    throw new RedisConfigError("bytebell set redis <url>");
+  }
+  const parsed = new URL(url);
+  const port = parsed.port.length > 0 ? Number(parsed.port) : 6379;
+  const dbPath = parsed.pathname.length > 1 ? parsed.pathname.slice(1) : "";
+  return {
+    host: parsed.hostname,
+    port,
+    password: parsed.password.length > 0 ? decodeURIComponent(parsed.password) : undefined,
+    username: parsed.username.length > 0 ? decodeURIComponent(parsed.username) : undefined,
+    db: dbPath.length > 0 ? Number(dbPath) : 0,
+    tls: parsed.protocol === "rediss:" ? {} : undefined,
+    maxRetriesPerRequest: null,
+    enableReadyCheck: false,
+  };
 }
 
 export function _getRedis(): Redis {

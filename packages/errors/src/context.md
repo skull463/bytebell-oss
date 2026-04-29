@@ -12,12 +12,15 @@ package-level contract; this file documents how the source tree is split.
   `@bb/config`. Today: `ConfigIncompleteError` (carries the missing
   `Config[]` and the corresponding `bytebell set …` hints). Type-only
   imports `Config` from `@bb/types`.
-- **[mongo-errors.ts](mongo-errors.ts)** — errors thrown by `@bb/mongo`.
-  Today: `MongoConfigError` (missing URI; carries the `bytebell set …`
-  hint), `MongoConnectError` (driver connect failed; redacts userinfo in
-  the URI via the local `redactUri` helper), `MongoNotConnectedError`
-  (`_getDb()` called before `connectMongo()`). Local helpers `describe` and
-  `redactUri` are file-private.
+- **[mongo-errors.ts](mongo-errors.ts)** — errors thrown by `@bb/mongo`
+  and the knowledge-document subsystem. Today: `MongoConfigError` (missing
+  URI; carries the `bytebell set …` hint), `MongoConnectError` (driver
+  connect failed; redacts userinfo in the URI via the local `redactUri`
+  helper), `MongoNotConnectedError` (`_getDb()` called before
+  `connectMongo()`), `KnowledgeNotFoundError`
+  (`setKnowledgeState` matched zero documents; carries the offending
+  `knowledgeId`). Local helpers `describe` and `redactUri` are
+  file-private.
 - **[redis-errors.ts](redis-errors.ts)** — errors thrown by `@bb/redis`.
   Today: `RedisConfigError` (missing URL; carries the `bytebell set …`
   hint), `RedisConnectError` (ioredis connect failed; redacts userinfo via
@@ -25,6 +28,11 @@ package-level contract; this file documents how the source tree is split.
   identically to the mongo URI form), `RedisNotConnectedError`
   (`_getRedis()` called before `connectRedis()`). Local helpers `describe`
   and `redactUri` are file-private.
+- **[queue-errors.ts](queue-errors.ts)** — errors thrown by `@bb/queue`.
+  Today: `QueueConnectError` (BullMQ Queue construction failed; wraps the
+  underlying cause via the local `describe` helper), `QueueNotConnectedError`
+  (publisher or `registerWorker` called before `connectQueue()`; marker
+  class with no extra fields).
 
 ## Module dependency graph
 
@@ -32,7 +40,8 @@ package-level contract; this file documents how the source tree is split.
 config-errors.ts → @bb/types (type-only: Config)
 mongo-errors.ts  → (leaf — no imports)
 redis-errors.ts  → (leaf — no imports)
-index.ts         → re-exports all three error modules
+queue-errors.ts  → (leaf — no imports)
+index.ts         → re-exports all four error modules
 ```
 
 No cross-file imports inside the package; no cycles possible.

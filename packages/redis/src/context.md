@@ -7,10 +7,12 @@ package-level contract; this file documents how the source tree is split.
 
 - **[index.ts](index.ts)** — public re-exports. The only entry point other
   packages may import. Exposes `connectRedis`, `closeRedis`, `pingRedis`,
-  and the `PingResult` type. Anything not re-exported here is internal.
+  `getRedisConnection`, and the `PingResult` / `RedisConnectionOptions`
+  types. Anything not re-exported here is internal.
 - **[client.ts](client.ts)** — module-scoped `Redis` singleton plus the
   lifecycle (`connectRedis`, `closeRedis`), the health probe (`pingRedis`),
-  and the **internal** `_getRedis()` accessor. Reads the URL via
+  the BullMQ-options provider (`getRedisConnection`), and the **internal**
+  `_getRedis()` accessor. Reads the URL via
   `getConfigValue(Config.RedisUrl)` from `@bb/config` + `@bb/types`. Throws
   typed errors from `@bb/errors` (`RedisConfigError`, `RedisConnectError`,
   `RedisNotConnectedError`). Also exposes `__resetForTests()` — test seam
@@ -56,10 +58,9 @@ implementation file.
 
 ## Adding a helper
 
-Follow the recipes in [../context.md](../context.md) under _How to extend_:
-
-- `getRedisConnection()` (BullMQ options blob) — graduates from internal to
-  public when `@bb/queue` lands.
-- Cache helpers (e.g. `cacheGet` / `cacheSet`) — live under
-  `src/cache/<name>.ts`, compose `_getRedis()`, and never expose the raw
-  `Redis` handle.
+Follow the recipes in [../context.md](../context.md) under _How to extend_.
+Cache helpers (e.g. `cacheGet` / `cacheSet`) live as flat files in
+`src/<name>.ts` (the repo's ESLint rule forbids parent traversal, so
+subdirectories require import gymnastics — keep `src/` flat unless the
+package outgrows it). Compose `_getRedis()`; never expose the raw `Redis`
+handle.

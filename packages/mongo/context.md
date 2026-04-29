@@ -2,10 +2,11 @@
 
 ## Tier
 
-Infrastructure. May depend on Kernel (`@bb/types`, when domain helpers are
-added) and on infra siblings explicitly listed in `package.json` (`@bb/config`
-for `Config.MongoUri`). May be imported by Strategy, Domain, and Binaries —
-never by `@bb/cli` (CLI talks HTTP only).
+Infrastructure. Depends on Kernel (`@bb/types` for `Config` and
+`KnowledgeState`, `@bb/errors` for typed error classes) and on infra
+siblings explicitly listed in `package.json` (`@bb/config` for
+`Config.MongoUri`). May be imported by Strategy (`@bb/queue`), Domain,
+and Binaries — never by `@bb/cli` (CLI talks HTTP only).
 
 ## Responsibility
 
@@ -13,35 +14,45 @@ The package owns:
 
 - A single shared `MongoClient` (lazy, idempotent connect; graceful close)
 - A health probe (`pingMongo`) backed by the active connection
-- An internal `_getDb()` accessor that future typed collection helpers will
-  compose against
+- An internal `_getDb()` accessor that typed collection helpers in this
+  package compose against
+- The **knowledge-document state mutator** — `setKnowledgeState` — which
+  is the only domain CRUD helper today. Called by `@bb/queue` publishers
+  on enqueue.
+- A central registry of collection name strings (`Collections` enum)
 
 The package does **not** own:
 
-- Domain CRUD (deferred — see _How to extend_)
-- Schema definitions / domain types (live in `@bb/types`)
-- Index management (deferred to a later package or domain helper)
+- Knowledge-document creation, full reads, or any mutation other than the
+  state field (deferred — see _How to extend_)
+- Document schemas (live in `@bb/types`)
+- Index management (deferred)
 - Neo4j / graph queries (`@bb/graph`)
 - Telemetry, logging, retry policies (the driver handles transport retries)
 
 ## Public exports
 
 ```ts
-function connectMongo(): Promise<void>
-function closeMongo():   Promise<void>
-function pingMongo():    Promise<PingResult>
+function connectMongo(): Promise<void>;
+function closeMongo(): Promise<void>;
+function pingMongo(): Promise<PingResult>;
 
-interface PingResult { ok: boolean; latencyMs: number }
+function setKnowledgeState(knowledgeId: string, state: KnowledgeState): Promise<void>;
 
-class MongoConfigError       extends Error  // missing mongo_uri
-class MongoConnectError      extends Error  // driver connect failed
-class MongoNotConnectedError extends Error  // _getDb() before connectMongo()
+interface PingResult {
+  ok: boolean;
+  latencyMs: number;
+}
 ```
 
-`_getDb()` is **internal** — consumed only by future collection helpers
-inside this package. Higher tiers cannot reach a raw `Db` handle; they go
-through typed domain helpers that this package will expose as they are
-added.
+(`MongoConfigError`, `MongoConnectError`, `MongoNotConnectedError`,
+`KnowledgeNotFoundError` are thrown by these functions but **defined in
+`@bb/errors`** — import them from there.)
+
+`_getDb()` and the `Collections` enum are **internal** — consumed only
+by helpers inside this package. Higher tiers cannot reach a raw `Db`
+handle; they go through typed domain helpers that this package will
+expose as they are added.
 
 ## Data ownership
 
@@ -67,15 +78,20 @@ migrations are intentionally not owned here.
 ## External dependencies
 
 - `mongodb` — official driver
-- `@bb/config` — workspace dep, only for `getConfigValue(Config.MongoUri)`
+- `@bb/config` — workspace dep, for `getConfigValue(Config.MongoUri)`
+- `@bb/types` — workspace dep, for `Config` and `KnowledgeState`
+- `@bb/errors` — workspace dep, for the typed error classes thrown here
 
 No logger, no telemetry, no Neo4j, no Redis. This package boots after
 `@bb/config` and before everything that needs persistence.
 
 ## What is intentionally out of scope (v0)
 
-- Domain CRUD (`getKnowledgeById`, `saveKnowledge`, etc.) — added on need
-  basis when the first real caller arrives
+- Knowledge-document creation, deletion, or full reads
+  (`getKnowledgeById`, `createKnowledge`, etc.) — added when the first
+  caller arrives
+- `Raw`, `Nodes`, and `Jobs` collection helpers — deferred until ingest
+  packages need them
 - Index creation / migrations
 - Transactions helper
 - Change streams, GridFS
@@ -85,13 +101,15 @@ No logger, no telemetry, no Neo4j, no Redis. This package boots after
 
 ## How to extend
 
-Adding the first CRUD helper (e.g. `getKnowledgeById`):
+Adding a new CRUD helper (e.g. `getKnowledgeById`):
 
-1. Add `@bb/types` to `package.json` `dependencies` (`workspace:*`).
-2. Create `src/collections/<name>.ts`.
-3. Use `_getDb()` to obtain the `Db` handle and access the named collection
-   directly — never expose the raw `Db` to callers.
-4. Return the domain type from `@bb/types` (e.g. `Knowledge`), never the
-   raw Mongo document shape.
-5. Re-export the helper (and any new public types) from `src/index.ts`.
+1. Pick or create the appropriate `Collections` enum entry in
+   `src/collections.ts` (single source of truth for collection names).
+2. Create `src/<name>.ts` (flat — repo ESLint forbids parent traversal,
+   so subdirectories require import gymnastics; keep `src/` flat).
+3. Use `_getDb()` to obtain the `Db` handle and access the named
+   collection — never expose the raw `Db` to callers.
+4. Return / accept domain types from `@bb/types`. Throw typed errors
+   from `@bb/errors`.
+5. Re-export the helper from `src/index.ts`.
 6. Update the _Public exports_ and _Out of scope_ sections of this file.

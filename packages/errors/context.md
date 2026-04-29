@@ -23,8 +23,14 @@ Today the catalog covers:
 - **Redis** — `RedisConfigError` (missing URL), `RedisConnectError` (ioredis
   connect failed; redacts userinfo in URL), `RedisNotConnectedError`
   (`_getRedis()` called before `connectRedis()`)
+- **Knowledge** — `KnowledgeNotFoundError` (`@bb/mongo.setKnowledgeState`
+  matched zero documents; carries the offending `knowledgeId` as a typed
+  field). Lives alongside the Mongo errors in `mongo-errors.ts`.
+- **Queue** — `QueueConnectError` (BullMQ Queue construction failed;
+  carries `cause`), `QueueNotConnectedError` (publisher or
+  `registerWorker` called before `connectQueue()`).
 
-New error classes land here as new packages are introduced (Neo4j, queue,
+New error classes land here as new packages are introduced (Neo4j,
 ingest, llm, license, etc.).
 
 ## Public exports
@@ -34,9 +40,12 @@ class ConfigIncompleteError    extends Error
 class MongoConfigError         extends Error
 class MongoConnectError        extends Error
 class MongoNotConnectedError   extends Error
+class KnowledgeNotFoundError   extends Error
 class RedisConfigError         extends Error
 class RedisConnectError        extends Error
 class RedisNotConnectedError   extends Error
+class QueueConnectError        extends Error
+class QueueNotConnectedError   extends Error
 ```
 
 ## Data ownership

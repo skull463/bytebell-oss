@@ -14,19 +14,36 @@ Single home for shared types and enums that cross package boundaries:
   Lives here (not in `@bb/config`) because consumers in higher tiers — e.g.
   `@bb/logger`, `@bb/mongo` — refer to it without wanting an implementation
   dependency on `@bb/config`'s schema/loader/writer.
+- `JobType`, `JobPriority`, `JobMessage<P>`, `GithubIndexPayload`,
+  `GithubPullPayload`, `PayloadFor<T>` — the queue/job vocabulary shared
+  between `@bb/queue` (publisher) and future `@bb/ingest-*` packages
+  (worker handlers).
+- `KnowledgeState` — the processing-status lifecycle enum (`CREATED →
+QUEUED → INGESTED → PROCESSING → PROCESSED ↘ FAILED`) referenced by
+  `@bb/queue` (writes `QUEUED`), `@bb/mongo` (`setKnowledgeState`), and
+  future ingest workers.
 
-Future inhabitants (added on need basis): `Knowledge`, `Raw`, `Node`,
-`MCP*`, `JobPayload` — the cross-package domain shapes named in
+Future inhabitants (added on need basis): full `Knowledge`, `Raw`,
+`Node`, `MCP*` document shapes — the cross-package domain types named in
 [docs/arch.md:69](../../docs/arch.md#L69).
 
 ## Public exports
 
 ```ts
 enum Config { ... }
+
+enum JobType     { GithubIndex, GithubPull }
+enum JobPriority { Low, Normal, High }
+interface GithubIndexPayload { knowledgeId, repoUrl, branch?, commitHash?, gitToken? }
+interface GithubPullPayload  { knowledgeId, latestCommitHash?, isShallow, gitToken? }
+interface JobMessage<P>      { id, type, priority, knowledgeId, attempt, createdAt, payload }
+type      PayloadFor<T extends JobType>
+
+enum KnowledgeState { Created, Queued, Ingested, Processing, Processed, Failed }
 ```
 
-That is the entire surface today. Add new shared types here only when **two
-or more** packages need to refer to the same shape.
+Add new shared types here only when **two or more** packages need to refer
+to the same shape.
 
 ## Data ownership
 

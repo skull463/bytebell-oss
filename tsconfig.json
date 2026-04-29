@@ -13,6 +13,7 @@
     { "path": "packages/config" },
     { "path": "packages/logger" },
     { "path": "packages/mongo" },
-    { "path": "packages/redis" }
+    { "path": "packages/redis" },
+    { "path": "packages/queue" }
   ]
 }

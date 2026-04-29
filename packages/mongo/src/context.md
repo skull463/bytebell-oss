@@ -6,8 +6,9 @@ package-level contract; this file documents how the source tree is split.
 ## Files
 
 - **[index.ts](index.ts)** — public re-exports. The only entry point other
-  packages may import. Exposes `connectMongo`, `closeMongo`, `pingMongo`, and
-  the `PingResult` type. Anything not re-exported here is internal.
+  packages may import. Exposes `connectMongo`, `closeMongo`, `pingMongo`,
+  `setKnowledgeState`, and the `PingResult` type. Anything not re-exported
+  here is internal.
 - **[client.ts](client.ts)** — module-scoped `MongoClient` singleton plus
   the lifecycle (`connectMongo`, `closeMongo`), the health probe
   (`pingMongo`), and the **internal** `_getDb()` accessor. Reads the URI via
@@ -15,17 +16,31 @@ package-level contract; this file documents how the source tree is split.
   typed errors from `@bb/errors` (`MongoConfigError`, `MongoConnectError`,
   `MongoNotConnectedError`). Also exposes `__resetForTests()` — test seam
   only, never imported by production code.
+- **[collections.ts](collections.ts)** — the `Collections` enum: single
+  source of truth for collection name strings. Today only
+  `Collections.Knowledge = "knowledge"`; `Raw`, `Nodes`, `Jobs` join when
+  their helpers land. **Internal** — not re-exported from `index.ts`;
+  consumed only by helpers in this folder.
+- **[knowledge.ts](knowledge.ts)** — the first domain CRUD helper:
+  `setKnowledgeState(knowledgeId, state)`. Uses `_getDb()` to access
+  `Collections.Knowledge`, runs `updateOne({ knowledgeId }, { $set: {
+"status.state": state, updatedAt: <now> } })`, and throws
+  `KnowledgeNotFoundError` on `matchedCount === 0`. Called by `@bb/queue`
+  publishers on enqueue.
 
 ## Module dependency graph
 
 ```
-client.ts → mongodb, @bb/config (getConfigValue), @bb/types (Config),
-            @bb/errors (Mongo* error classes)
-index.ts  → re-exports the public surface from client.ts
+client.ts      → mongodb, @bb/config (getConfigValue), @bb/types (Config),
+                 @bb/errors (Mongo* error classes)
+collections.ts → (leaf — no imports)
+knowledge.ts   → client.ts (_getDb), collections.ts (Collections),
+                 @bb/types (KnowledgeState), @bb/errors (KnowledgeNotFoundError)
+index.ts       → re-exports the public surface from client.ts + knowledge.ts
 ```
 
-No cycles, no intra-package leaves yet — `client.ts` is the only
-implementation file.
+No cycles. `collections.ts` is a leaf; `knowledge.ts` is the only file
+that composes `_getDb()` so far.
 
 ## Invariants enforced here
 
@@ -48,6 +63,9 @@ implementation file.
 ## Adding a CRUD helper
 
 Follow the recipe in [../context.md](../context.md) under _How to extend_.
-The new file lives under `src/collections/<name>.ts` and is re-exported from
-`index.ts`. The helper composes `_getDb()` to obtain the `Db` handle and
-returns a domain type from `@bb/types` — never a raw Mongo document shape.
+New files live as flat `src/<name>.ts` (the repo ESLint rule forbids
+parent traversal, so subdirectories require import gymnastics — keep
+`src/` flat unless the package outgrows it). The helper composes
+`_getDb()` to obtain the `Db` handle and `Collections.<X>` for the
+collection name; returns / accepts domain types from `@bb/types`; throws
+typed errors from `@bb/errors`.
