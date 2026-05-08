@@ -5,12 +5,12 @@ import { Box, Text, useApp, useInput } from "ink";
 /**
  * Generic interactive selector for indexed repos.
  *
- * Two modes, controlled by `multi`:
+ * Two modes, controlled by `multi` (defaults to `true`):
  *
- * - **Single (default):** up/down (or j/k) to move, Enter chooses the row,
- *   Esc cancels.
- * - **Multi (`multi: true`):** Space toggles the row at the cursor on/off,
- *   Enter submits the current set of toggled rows, Esc cancels.
+ * - **Multi (default):** Space toggles the row at the cursor on/off, Enter
+ *   submits the current set of toggled rows, Esc cancels.
+ * - **Single (`multi: false`):** up/down (or j/k) to move, Enter chooses
+ *   the row, Esc cancels.
  *
  * In both modes, an optional confirm phase (set via `confirm`) gates the
  * resolution behind a y/N prompt — useful for destructive actions like
@@ -53,7 +53,7 @@ export interface RepoSelectorProps {
 
 type Phase = "select" | "confirm";
 
-export function RepoSelector({ items, title, multi = false, confirm, onDone }: RepoSelectorProps): ReactElement {
+export function RepoSelector({ items, title, multi = true, confirm, onDone }: RepoSelectorProps): ReactElement {
   const { exit } = useApp();
   const [index, setIndex] = useState(0);
   const [phase, setPhase] = useState<Phase>("select");

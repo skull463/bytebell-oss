@@ -15,9 +15,10 @@ import {
  * previously-indexed knowledge entry. Filters by source kind so commands
  * that only apply to one kind (pull → github only) don't re-filter.
  *
- * Single-pick (default) and multi-pick are both supported via `multi: true`.
- * The result is **always an array**: length 1 in single mode, length ≥1 in
- * multi mode (cancel → `null`). Callers in single mode dereference `[0]`.
+ * Multi-pick is the default (matches the rest of the CLI). Pass
+ * `multi: false` for the rare case where exactly one item is needed. The
+ * result is **always an array**: length ≥1 in multi mode, length 1 in
+ * single mode (cancel → `null`).
  *
  * The empty-list message is printed to stdout here so callers don't all
  * reinvent it.
@@ -41,7 +42,7 @@ export interface RepoSelectorPromptOptions {
   title: string;
   /** Restrict to a single source kind. Omit (or "all") to show everything. */
   filterKind?: "github" | "local" | "all";
-  /** When true, Space toggles per-row selection and Enter submits the set. */
+  /** Multi-pick (default `true`). Pass `false` to require exactly one item. */
   multi?: boolean;
   /** Optional confirm phase (y/N) — set for destructive actions like delete. */
   confirm?: RepoSelectorConfirm;

@@ -54,8 +54,8 @@ async function runPull(
     }
 
     // No id supplied → interactive picker, github-only (pull doesn't apply to local repos).
-    const targetId = knowledgeId !== undefined && knowledgeId.length > 0 ? knowledgeId : await pickKnowledgeId();
-    if (targetId === null) {
+    const targetIds = knowledgeId !== undefined && knowledgeId.length > 0 ? [knowledgeId] : await pickKnowledgeIds();
+    if (targetIds.length === 0) {
       info("No repo selected.");
       return;
     }
@@ -64,25 +64,39 @@ async function runPull(
       tailer = await startLogTailer("server");
     }
 
-    const body: Record<string, string> = { knowledgeId: targetId };
-    if (options.commit !== undefined) {
-      body["latestCommitHash"] = options.commit;
-    }
-    if (options.token !== undefined) {
-      body["gitToken"] = options.token;
-    }
-    const response = await postJson<PullResponse>("/api/v1/github/pull", body);
+    // Enqueue all pulls upfront — BullMQ runs workers concurrently in the
+    // server process, so there's no benefit to serialising the HTTP submits.
+    const enqueueResults = await Promise.all(
+      targetIds.map(async (targetId) => {
+        const body: Record<string, string> = { knowledgeId: targetId };
+        if (options.commit !== undefined) {
+          body["latestCommitHash"] = options.commit;
+        }
+        if (options.token !== undefined) {
+          body["gitToken"] = options.token;
+        }
+        const response = await postJson<PullResponse>("/api/v1/github/pull", body);
+        return { targetId, response };
+      }),
+    );
 
-    if (response.noOp === true) {
-      info(`No-op: knowledge ${targetId} already at commit ${response.commitHash ?? "(unknown)"}`);
-      return;
+    const polling: Array<{ knowledgeId: string; jobId: string }> = [];
+    for (const { targetId, response } of enqueueResults) {
+      if (response.noOp === true) {
+        info(`No-op: knowledge ${targetId} already at commit ${response.commitHash ?? "(unknown)"}`);
+        continue;
+      }
+      if (response.jobId === undefined) {
+        error(`Pull was not enqueued for knowledge ${targetId}`);
+        process.exitCode = 1;
+        continue;
+      }
+      polling.push({ knowledgeId: response.knowledgeId, jobId: response.jobId });
     }
-    if (response.jobId === undefined) {
-      error(`Pull was not enqueued for knowledge ${targetId}`);
-      process.exitCode = 1;
-      return;
-    }
-    await pollJobStatus(response.knowledgeId, response.jobId);
+
+    // Poll every enqueued job in parallel so progress for all repos updates
+    // concurrently rather than blocking on the first one to finish.
+    await Promise.all(polling.map(({ knowledgeId: kid, jobId }) => pollJobStatus(kid, jobId)));
   } catch (cause: unknown) {
     handleError(cause);
   } finally {
@@ -92,15 +106,13 @@ async function runPull(
   }
 }
 
-async function pickKnowledgeId(): Promise<string | null> {
+async function pickKnowledgeIds(): Promise<string[]> {
   const result = await promptRepoSelector({
-    title: "Select a repo to pull",
+    title: "Select repos to pull",
     filterKind: "github",
     emptyMessage: "No indexed GitHub repos. Run `bytebell index <url>` first.",
-    multi: false,
   });
-  // Single-mode call → `picked` always has exactly one entry.
-  return result === null ? null : (result.picked[0]?.item.knowledgeId ?? null);
+  return result === null ? [] : result.picked.map((p) => p.item.knowledgeId);
 }
 
 async function pollJobStatus(knowledgeId: string, jobId: string): Promise<void> {
