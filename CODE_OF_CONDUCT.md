@@ -9,7 +9,7 @@ By participating in this project — opening issues, submitting pull requests, o
 
 ## Reporting
 
-To report a concern, contact the project team at **saurav@bytebell.ai**. Reports will be reviewed and investigated promptly and fairly. Reporter privacy will be respected.
+To report a concern, contact the project team at **team@bytebell.ai**. Reports will be reviewed and investigated promptly and fairly. Reporter privacy will be respected.
 
 ## Enforcement
 

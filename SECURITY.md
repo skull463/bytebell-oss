@@ -4,7 +4,7 @@
 
 If you believe you have found a security issue in Bytebell, please report it privately. **Do not open a public GitHub issue for security problems.**
 
-- **Email**: `saurav@bytebell.ai`
+- **Email**: `team@bytebell.ai`
 - **Subject line**: `[security] <short description>`
 - **Encryption**: GPG is welcome but not required. If you wish to encrypt, request the public key in your initial email.
 

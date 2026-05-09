@@ -284,7 +284,7 @@ Bytebell-public is the OSS edition. ByteBell also offers a separately-licensed *
 - Access to the managed ByteBell knowledge surface and connectors to internal sources (Confluence, Jira, Notion, GitHub Enterprise, …).
 - Engineering support and SLAs for production deployments.
 
-To discuss Enterprise licensing, evaluation, or services, contact `saurav@bytebell.ai`.
+To discuss Enterprise licensing, evaluation, or services, contact `team@bytebell.ai`.
 
 ## Contributing
 
@@ -292,4 +292,4 @@ Hooks, commit conventions, and pre-push gates are documented in [contributing.md
 
 ## License
 
-Bytebell is released under **AGPL-3.0 with an additional non-commercial use clause** — see [LICENSE](LICENSE) for the authoritative text. Personal, academic, research, and non-profit use are unrestricted under AGPL-3.0 (network-copyleft applies). **Commercial use** is governed by license terms and is covered by the [Enterprise edition](#enterprise) (`saurav@bytebell.ai`). The running server itself does **not** verify a license; governance is by license terms, not by code. The server is meant for local single-tenant use — no remote network surface; everything binds to `127.0.0.1`.
+Bytebell is released under **AGPL-3.0 with an additional non-commercial use clause** — see [LICENSE](LICENSE) for the authoritative text. Personal, academic, research, and non-profit use are unrestricted under AGPL-3.0 (network-copyleft applies). **Commercial use** is governed by license terms and is covered by the [Enterprise edition](#enterprise) (`team@bytebell.ai`). The running server itself does **not** verify a license; governance is by license terms, not by code. The server is meant for local single-tenant use — no remote network surface; everything binds to `127.0.0.1`.
