@@ -5,8 +5,8 @@ import {
   type BytebellConfig,
   type ConfigValue,
   HINTS,
-  REQUIRED_KEYS,
   readField,
+  requiredKeysFor,
 } from "./schema.ts";
 import { __registerCacheInvalidator, getConfigPath } from "./paths.ts";
 import { ensureBytebellHome } from "./writer.ts";
@@ -37,7 +37,7 @@ export type ConfigCompletenessResult = { ok: true } | { ok: false; missing: Conf
 export function isConfigComplete(): ConfigCompletenessResult {
   const cfg = loadConfig();
   const missing: Config[] = [];
-  for (const key of REQUIRED_KEYS) {
+  for (const key of requiredKeysFor(cfg.llm_provider)) {
     const value = readField(cfg, key);
     if (typeof value === "string" && value.length === 0) {
       missing.push(key);

@@ -6,6 +6,9 @@ export { Config };
 export const LOG_LEVELS = ["error", "warn", "info", "http", "verbose", "debug", "silly"] as const;
 export type LogLevel = (typeof LOG_LEVELS)[number];
 
+export const LLM_PROVIDERS = ["openrouter", "ollama"] as const;
+export type LlmProvider = (typeof LLM_PROVIDERS)[number];
+
 const concurrencySchema = z
   .object({
     github: z.number().int().positive().default(2),
@@ -30,6 +33,9 @@ export const configSchema = z
     log_level: z.enum(LOG_LEVELS).default("info"),
     log_retention_days: z.number().int().positive().default(14),
     llm_cache_enabled: z.boolean().default(true),
+    llm_provider: z.enum(LLM_PROVIDERS).default("openrouter"),
+    ollama_url: z.string().default("http://localhost:11434"),
+    ollama_model: z.string().default(""),
     "context.window.limit": z.number().int().positive().default(15000),
     "max.tokens.per.chunk": z.number().int().positive().default(6000),
     "big.file.concurrency": z.number().int().positive().default(25),
@@ -67,6 +73,9 @@ export type ConfigValueMap = {
   [Config.LogLevel]: LogLevel;
   [Config.LogRetentionDays]: number;
   [Config.LlmCacheEnabled]: boolean;
+  [Config.LlmProvider]: LlmProvider;
+  [Config.OllamaUrl]: string;
+  [Config.OllamaModel]: string;
   [Config.ContextWindowLimit]: number;
   [Config.MaxTokensPerChunk]: number;
   [Config.BigFileConcurrency]: number;
@@ -90,8 +99,16 @@ export const REQUIRED_KEYS: readonly Config[] = [
   Config.Neo4jUser,
   Config.Neo4jPassword,
   Config.RedisUrl,
-  Config.OpenrouterApiKey,
 ];
+
+const PROVIDER_REQUIRED_KEYS: Readonly<Record<LlmProvider, readonly Config[]>> = {
+  openrouter: [Config.OpenrouterApiKey],
+  ollama: [Config.OllamaUrl, Config.OllamaModel],
+};
+
+export function requiredKeysFor(provider: LlmProvider): readonly Config[] {
+  return [...REQUIRED_KEYS, ...PROVIDER_REQUIRED_KEYS[provider]];
+}
 
 export const HINTS: Readonly<Record<Config, string>> = {
   [Config.ServerPort]: "bytebell set port <n>",
@@ -110,6 +127,9 @@ export const HINTS: Readonly<Record<Config, string>> = {
   [Config.LogLevel]: "bytebell set log-level <error|warn|info|debug>",
   [Config.LogRetentionDays]: "bytebell set log-retention-days <n>",
   [Config.LlmCacheEnabled]: "bytebell set llm_cache_enabled <true|false>",
+  [Config.LlmProvider]: "bytebell set llm-provider <openrouter|ollama>",
+  [Config.OllamaUrl]: "bytebell set ollama-url <url>",
+  [Config.OllamaModel]: "bytebell set ollama-model <model>",
   [Config.ContextWindowLimit]: "bytebell set context.window.limit <n>",
   [Config.MaxTokensPerChunk]: "bytebell set max.tokens.per.chunk <n>",
   [Config.BigFileConcurrency]: "bytebell set big.file.concurrency <n>",
@@ -159,6 +179,12 @@ export function readField<K extends Config>(cfg: BytebellConfig, key: K): Config
       return cfg.log_retention_days as ConfigValue<K>;
     case Config.LlmCacheEnabled:
       return cfg.llm_cache_enabled as ConfigValue<K>;
+    case Config.LlmProvider:
+      return cfg.llm_provider as ConfigValue<K>;
+    case Config.OllamaUrl:
+      return cfg.ollama_url as ConfigValue<K>;
+    case Config.OllamaModel:
+      return cfg.ollama_model as ConfigValue<K>;
     case Config.ContextWindowLimit:
       return cfg["context.window.limit"] as ConfigValue<K>;
     case Config.MaxTokensPerChunk:
@@ -222,6 +248,12 @@ export function writeField<K extends Config>(cfg: BytebellConfig, key: K, value:
       return { ...cfg, log_retention_days: value as number };
     case Config.LlmCacheEnabled:
       return { ...cfg, llm_cache_enabled: value as boolean };
+    case Config.LlmProvider:
+      return { ...cfg, llm_provider: value as LlmProvider };
+    case Config.OllamaUrl:
+      return { ...cfg, ollama_url: value as string };
+    case Config.OllamaModel:
+      return { ...cfg, ollama_model: value as string };
     case Config.ContextWindowLimit:
       return { ...cfg, "context.window.limit": value as number };
     case Config.MaxTokensPerChunk:

@@ -12,7 +12,9 @@ package-level contract; this file documents how the source tree is split.
   `__setBytebellHomeForTests`. Pure: imports nothing from the rest of the
   package.
 - **[schema.ts](schema.ts)** — Zod `configSchema`, `BytebellConfig` type,
-  `ConfigValueMap`, `DEFAULT_CONFIG`, `REQUIRED_KEYS`, `HINTS`, and the
+  `ConfigValueMap`, `DEFAULT_CONFIG`, `REQUIRED_KEYS` (infra-always),
+  `requiredKeysFor(provider)` (combines infra + provider-specific keys
+  driven by `Config.LlmProvider`), `HINTS`, and the
   `readField` / `writeField` switch helpers. Imports the `Config` enum from
   `@bb/types` and re-exports it for intra-package convenience.
 - **[loader.ts](loader.ts)** — `loadConfig` (memoized), `getConfigValue`,
